@@ -8,6 +8,10 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ name, price, imageUrl, onClick }: ProductCardProps) {
+  const placeholder = `https://placehold.co/400x533/1a1a1a/gold?text=${encodeURIComponent(
+    name.slice(0, 1)
+  )}`;
+
   return (
     <motion.div
       whileHover={{ y: -4 }}
@@ -17,10 +21,15 @@ export default function ProductCard({ name, price, imageUrl, onClick }: ProductC
     >
       <div className="aspect-[3/4] overflow-hidden bg-card rounded-sm">
         <img
-          src={imageUrl || "/placeholder.svg"}
+          src={imageUrl || placeholder}
           alt={name}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = placeholder;
+          }}
         />
       </div>
       <div className="mt-4 space-y-1">

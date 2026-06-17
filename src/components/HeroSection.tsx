@@ -4,11 +4,14 @@ export default function HeroSection() {
   return (
     <section className="relative h-screen w-full overflow-hidden">
       {/* Animated background image */}
-      <div className="absolute inset-0 animate-hero-zoom">
+      <div className="absolute inset-0 bg-zinc-900 animate-hero-zoom">
         <img
           src={heroBanner}
           alt="Luxury fashion collection featuring shoes, watches, and glasses"
           className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/30 to-background" />
       </div>

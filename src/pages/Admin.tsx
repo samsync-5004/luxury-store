@@ -196,9 +196,18 @@ export default function AdminPage() {
                       <tr key={product.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                         <td className="py-3 px-2">
                           <img
-                            src={product.image_paths?.[0] || "/placeholder.svg"}
+                            src={product.image_paths?.[0] || `https://placehold.co/80x80/1a1a1a/gold?text=${encodeURIComponent(
+                              product.name.slice(0, 1)
+                            )}`}
                             alt={product.name}
                             className="w-12 h-12 object-cover rounded-sm"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = `https://placehold.co/80x80/1a1a1a/gold?text=${encodeURIComponent(
+                                product.name.slice(0, 1)
+                              )}`;
+                            }}
                           />
                         </td>
                         <td className="py-3 px-2 font-body text-sm text-foreground">{product.name}</td>

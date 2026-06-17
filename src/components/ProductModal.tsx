@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { X, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductModalProps {
   product: {
+    id: string;
     name: string;
     description: string;
     price: number;
@@ -19,10 +22,31 @@ interface ProductModalProps {
 
 export default function ProductModal({ product, onClose }: ProductModalProps) {
   const [currentImage, setCurrentImage] = useState(0);
-  const images = product.image_paths.length > 0 ? product.image_paths : ["/placeholder.svg"];
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined);
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
+  const placeholderUrl = useMemo(
+    () => `https://placehold.co/800x800/1a1a1a/gold?text=${encodeURIComponent(product.name.slice(0, 1))}`,
+    [product.name],
+  );
+  const images = product.image_paths.length > 0 ? product.image_paths : [placeholderUrl];
 
   const nextImage = () => setCurrentImage((i) => (i + 1) % images.length);
   const prevImage = () => setCurrentImage((i) => (i - 1 + images.length) % images.length);
+
+  const handleAddToCart = () => {
+    if (product.sizes.length > 0 && !selectedSize) {
+      toast({ title: "Please select a size", variant: "destructive" });
+      return;
+    }
+
+    addToCart(product, selectedSize, selectedColor, quantity);
+    toast({ title: "Added to bag ✓" });
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -57,6 +81,11 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 src={images[currentImage]}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = placeholderUrl;
+                }}
               />
               {images.length > 1 && (
                 <>
@@ -100,14 +129,9 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
               <h2 className="font-display text-2xl md:text-3xl font-semibold text-foreground">
                 {product.name}
               </h2>
-              <p className="font-display text-xl text-foreground">
-                ₦{product.price.toLocaleString()}
-              </p>
-              <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                {product.description}
-              </p>
+              <p className="font-display text-xl text-foreground">₦{product.price.toLocaleString()}</p>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed">{product.description}</p>
 
-              {/* Specs */}
               <div className="space-y-4 border-t border-border pt-4">
                 {product.material && (
                   <div>
@@ -115,37 +139,69 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                     <p className="font-body text-sm text-foreground">{product.material}</p>
                   </div>
                 )}
+
                 {product.sizes.length > 0 && (
                   <div>
-                    <p className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">Sizes</p>
+                    <p className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">Select Size</p>
                     <div className="flex flex-wrap gap-2">
                       {product.sizes.map((size) => (
-                        <span key={size} className="px-3 py-1 border border-border text-xs font-body text-foreground">
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setSelectedSize(size)}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
+                            selectedSize === size
+                              ? "border-gold bg-gold text-background"
+                              : "border-border bg-background text-foreground hover:border-foreground"
+                          }`}
+                        >
                           {size}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
+
                 {product.colors.length > 0 && (
                   <div>
-                    <p className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">Colors</p>
+                    <p className="font-body text-xs uppercase tracking-widest text-muted-foreground mb-2">Select Color</p>
                     <div className="flex flex-wrap gap-2">
                       {product.colors.map((color) => (
-                        <span key={color} className="px-3 py-1 border border-border text-xs font-body text-foreground">
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setSelectedColor(color)}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
+                            selectedColor === color
+                              ? "border-gold bg-gold text-background"
+                              : "border-border bg-background text-foreground hover:border-foreground"
+                          }`}
+                        >
                           {color}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <p className="font-body text-xs uppercase tracking-widest text-muted-foreground">Quantity</p>
+                  <div className="flex items-center gap-3">
+                    <Button size="sm" variant="outline" onClick={() => setQuantity((qty) => Math.max(1, qty - 1))}>
+                      -
+                    </Button>
+                    <span className="min-w-[2rem] text-center font-body text-sm text-foreground">{quantity}</span>
+                    <Button size="sm" variant="outline" onClick={() => setQuantity((qty) => qty + 1)}>
+                      +
+                    </Button>
+                  </div>
+                </div>
               </div>
 
-              <Button className="w-full mt-auto gap-2" size="lg" disabled>
+              <Button className="w-full mt-auto gap-2" size="lg" onClick={handleAddToCart}>
                 <ShoppingBag size={18} />
-                Add to Cart
+                Add to Bag
               </Button>
-              <p className="text-xs text-center text-muted-foreground">Coming soon</p>
             </div>
           </div>
         </motion.div>
